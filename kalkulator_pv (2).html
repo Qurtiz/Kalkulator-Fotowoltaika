@@ -1,0 +1,1946 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalkulator opłacalności PV — net-billing 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d1117;
+  --bg-soft: #161b22;
+  --bg-card: #1c232c;
+  --border: #2a323d;
+  --border-soft: #232a33;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --text-dim: #6e7681;
+  --sun: #f5b400;
+  --sun-soft: #f5b40022;
+  --mint: #3fb98a;
+  --mint-soft: #3fb98a22;
+  --red: #f47174;
+  --red-soft: #f4717422;
+  --blue: #6cb6ff;
+  --blue-soft: #6cb6ff22;
+  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --display: 'Fraunces', serif;
+  --mono: 'JetBrains Mono', monospace;
+  --body: 'Inter', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at top left, var(--sun-soft) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom right, var(--mint-soft) 0%, transparent 50%),
+    var(--bg);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+.wrap {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+/* HEADER */
+header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 24px;
+  margin-bottom: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.brand {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--sun);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+h1 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+h1 .accent { color: var(--sun); font-style: italic; }
+.sub {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+/* LAYOUT */
+.layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 24px;
+}
+@media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
+
+/* CARDS */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--sun);
+  border-radius: 50%;
+  display: inline-block;
+}
+.card-title.mint::before { background: var(--mint); }
+.card-title.blue::before { background: var(--blue); }
+.card-title.red::before { background: var(--red); }
+
+/* INPUTS */
+.field { margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
+label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+label .val {
+  font-family: var(--mono);
+  color: var(--text);
+  font-weight: 500;
+  font-size: 12px;
+}
+input[type="number"], select {
+  width: 100%;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  transition: border-color 0.15s;
+}
+input[type="number"]:focus, select:focus {
+  outline: none;
+  border-color: var(--sun);
+}
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  background: var(--sun);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 0 4px var(--sun-soft);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 16px; height: 16px;
+  background: var(--sun);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+.toggle-group {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px;
+}
+.toggle-group button {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 8px 4px;
+  cursor: pointer;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: all 0.15s;
+}
+.toggle-group button.active {
+  background: var(--sun);
+  color: #000;
+}
+.toggle-group button:hover:not(.active) { color: var(--text); }
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.checkbox input { width: 14px; height: 14px; accent-color: var(--sun); }
+
+/* RESULTS */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+@media (max-width: 700px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+.kpi {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.kpi-value {
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.kpi-unit { font-family: var(--mono); font-size: 12px; color: var(--text-muted); margin-left: 4px; }
+.kpi-delta {
+  font-family: var(--mono);
+  font-size: 11px;
+  margin-top: 6px;
+  color: var(--text-muted);
+}
+.kpi-delta.pos { color: var(--mint); }
+.kpi-delta.neg { color: var(--red); }
+.kpi::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 60px; height: 60px;
+  background: radial-gradient(circle at top right, var(--sun-soft), transparent 70%);
+  pointer-events: none;
+}
+
+/* SCENARIO COMPARE */
+.scenarios {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+@media (max-width: 700px) { .scenarios { grid-template-columns: 1fr; } }
+.scen {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  position: relative;
+}
+.scen.best {
+  border-color: var(--mint);
+  box-shadow: 0 0 0 1px var(--mint-soft), 0 8px 24px rgba(63,185,138,0.1);
+}
+.scen.inactive {
+  opacity: 0.5;
+  border-style: dashed;
+}
+.scen-inactive-tag {
+  position: absolute;
+  top: 12px; right: 12px;
+  background: var(--border);
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.scen-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.scen-best-tag {
+  position: absolute;
+  top: 12px; right: 12px;
+  background: var(--mint);
+  color: #000;
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.scen-cost {
+  font-family: var(--display);
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1;
+  margin: 8px 0 4px;
+}
+.scen-period {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+}
+.scen-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border-soft);
+}
+.scen-row:first-of-type { border-top: none; }
+.scen-row .lab { color: var(--text-muted); }
+.scen-row .v { font-family: var(--mono); color: var(--text); }
+
+/* CHARTS */
+.chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 16px;
+}
+.chart-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+}
+.legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+svg { display: block; width: 100%; height: auto; }
+
+/* TABLE */
+.profile-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.profile-table th {
+  text-align: left;
+  color: var(--text-dim);
+  font-weight: 500;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.profile-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text);
+}
+.profile-table td input {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-align: right;
+}
+.profile-table td input:hover { border-color: var(--border); }
+.profile-table td input:focus { border-color: var(--sun); outline: none; background: var(--bg-soft); }
+.profile-table .month { color: var(--text-muted); }
+
+/* INFO */
+.info {
+  background: var(--bg-soft);
+  border-left: 3px solid var(--sun);
+  padding: 12px 14px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-radius: 0 6px 6px 0;
+  line-height: 1.5;
+}
+.info b { color: var(--text); }
+
+/* FOOTER */
+footer {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.7;
+}
+footer a { color: var(--sun); text-decoration: none; }
+
+/* DETAILS */
+details summary {
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  padding: 8px 0;
+  list-style: none;
+}
+details summary::after { content: ' ▸'; }
+details[open] summary::after { content: ' ▾'; }
+details[open] summary { color: var(--sun); margin-bottom: 10px; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* APPLIANCES */
+.appliance {
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: var(--bg-soft);
+  transition: border-color 0.15s, background 0.15s;
+}
+.appliance.active {
+  border-color: var(--mint);
+  background: linear-gradient(180deg, var(--mint-soft) 0%, var(--bg-soft) 100%);
+}
+.app-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  margin-bottom: 0;
+}
+.app-row input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: var(--mint);
+  cursor: pointer;
+  margin: 0;
+}
+.app-row .app-name {
+  flex: 1;
+  color: var(--text);
+  font-weight: 500;
+}
+.app-row .val {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.app-row .app-status {
+  font-family: var(--mono);
+  color: var(--text-dim);
+}
+.appliance.active .app-status {
+  color: var(--mint);
+  font-weight: 600;
+}
+.app-disabled {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  background: var(--bg-card);
+  border-radius: 3px;
+}
+.app-detail {
+  padding: 4px 14px 14px;
+  border-top: 1px solid var(--border-soft);
+}
+.app-detail label {
+  margin-top: 4px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.app-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 6px;
+  font-style: italic;
+  line-height: 1.4;
+}
+.total-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--mint);
+  border-radius: 8px;
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.total-val {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--mint);
+  text-transform: none;
+  letter-spacing: -0.02em;
+}
+.total-val span { color: var(--mint); }
+.btn-reset {
+  margin-top: 12px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: all 0.15s;
+}
+.btn-reset:hover {
+  color: var(--sun);
+  border-color: var(--sun);
+}
+
+/* PANEL SPECS */
+.panel-specs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.spec {
+  background: var(--bg-soft);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.spec-lab {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.spec-val {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--blue);
+  font-weight: 500;
+}
+.panel-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.4;
+  padding: 8px 10px;
+  background: var(--blue-soft);
+  border-radius: 6px;
+  margin-bottom: 14px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <div class="brand">PV-Calc · v1.0 · 2026</div>
+    <h1>Kalkulator opłacalności <span class="accent">fotowoltaiki</span></h1>
+    <div class="sub">Net-billing · RCEm · scenariusze: bez PV / PV / PV + magazyn · symulacja kredytu</div>
+  </div>
+  <div class="badge">📍 Polska · taryfa G11/G12</div>
+</header>
+
+<div class="layout">
+
+  <!-- ============ LEWA KOLUMNA: WEJŚCIE ============ -->
+  <aside>
+
+    <!-- 1. TARYFA -->
+    <div class="card">
+      <div class="card-title">1 · Taryfa i cennik</div>
+      <div class="field">
+        <label>Taryfa <span class="val" id="tariffName">G11 (jednostrefowa)</span></label>
+        <div class="toggle-group" id="tariffGroup">
+          <button data-tariff="G11" class="active">G11</button>
+          <button data-tariff="G12">G12</button>
+          <button data-tariff="G12W">G12W</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Cena prądu — szczyt <span class="val"><span id="priceDayVal">1.10</span> zł/kWh</span></label>
+        <input type="number" id="priceDay" value="1.10" step="0.01" min="0.3" max="3">
+      </div>
+      <div class="field" id="priceNightWrap" style="display:none">
+        <label>Cena prądu — noc/weekend <span class="val"><span id="priceNightVal">0.60</span> zł/kWh</span></label>
+        <input type="number" id="priceNight" value="0.60" step="0.01" min="0.2" max="3">
+      </div>
+      <div class="field">
+        <label>Opłaty stałe (miesięcznie) <span class="val"><span id="fixedFeeVal">35</span> zł</span></label>
+        <input type="number" id="fixedFee" value="35" step="1" min="0" max="200">
+      </div>
+      <div class="field">
+        <label>RCEm — średnia roczna <span class="val"><span id="rcemVal">0.30</span> zł/kWh</span></label>
+        <input type="range" id="rcem" value="0.30" min="0.10" max="0.80" step="0.01">
+      </div>
+      <div class="info">
+        Net-billing rozlicza nadwyżki po <b>RCEm + 23%</b> (ekw. VAT). Średnia 2025/2026 oscyluje wokół <b>0.20–0.55 zł/kWh</b>, kwiecień 2026 dał rekordowo niskie 0.13 zł/kWh. Wartości historyczne PSE/OIRE.
+      </div>
+    </div>
+
+    <!-- 2. ODBIORNIKI ENERGII -->
+    <div class="card">
+      <div class="card-title mint">2 · Odbiorniki w gospodarstwie</div>
+      <div class="appliance" data-app="base">
+        <label class="app-row">
+          <span class="app-name">⚡ Zużycie bazowe</span>
+          <span class="val app-disabled">zawsze aktywne</span>
+        </label>
+        <div class="app-detail">
+          <label>Roczne zużycie <span class="val"><span id="appBaseVal">2200</span> kWh</span></label>
+          <input type="range" id="appBase" value="2200" min="800" max="6000" step="100">
+          <div class="app-hint">Oświetlenie, AGD, elektronika, gotowanie, c.w.u. elektryczna (bojler)</div>
+        </div>
+      </div>
+
+      <div class="appliance" data-app="heating">
+        <label class="app-row">
+          <input type="checkbox" id="appHeatingOn">
+          <span class="app-name">🔥 Ogrzewanie elektryczne</span>
+          <span class="val app-status">—</span>
+        </label>
+        <div class="app-detail" id="appHeatingDetail" style="display:none">
+          <label>Roczne zużycie <span class="val"><span id="appHeatingVal">8000</span> kWh</span></label>
+          <input type="range" id="appHeating" value="8000" min="2000" max="20000" step="200">
+          <div class="app-hint">Grzejniki elektryczne, piec akumulacyjny — wszystko zimą</div>
+        </div>
+      </div>
+
+      <div class="appliance" data-app="hp">
+        <label class="app-row">
+          <input type="checkbox" id="appHpOn">
+          <span class="app-name">♨️ Pompa ciepła</span>
+          <span class="val app-status">—</span>
+        </label>
+        <div class="app-detail" id="appHpDetail" style="display:none">
+          <label>Roczne zużycie <span class="val"><span id="appHpVal">3500</span> kWh</span></label>
+          <input type="range" id="appHp" value="3500" min="1500" max="8000" step="100">
+          <div class="app-hint">Powietrze-woda, COP ~3.5. Profil zimowy łagodniejszy niż grzejniki.</div>
+        </div>
+      </div>
+
+      <div class="appliance" data-app="ac">
+        <label class="app-row">
+          <input type="checkbox" id="appAcOn">
+          <span class="app-name">❄️ Klimatyzacja</span>
+          <span class="val app-status">—</span>
+        </label>
+        <div class="app-detail" id="appAcDetail" style="display:none">
+          <label>Roczne zużycie <span class="val"><span id="appAcVal">800</span> kWh</span></label>
+          <input type="range" id="appAc" value="800" min="200" max="3000" step="50">
+          <div class="app-hint">Szczyt: czerwiec–sierpień. Dobrze pokrywa się z produkcją PV.</div>
+        </div>
+      </div>
+
+      <div class="appliance" data-app="ev">
+        <label class="app-row">
+          <input type="checkbox" id="appEvOn">
+          <span class="app-name">🚗 Auto elektryczne</span>
+          <span class="val app-status">—</span>
+        </label>
+        <div class="app-detail" id="appEvDetail" style="display:none">
+          <label>Roczne zużycie <span class="val"><span id="appEvVal">3000</span> kWh</span></label>
+          <input type="range" id="appEv" value="3000" min="500" max="10000" step="100">
+          <div class="app-hint">15 000 km/rok ≈ 3000 kWh. Lekko więcej zimą (mniejszy zasięg).</div>
+        </div>
+      </div>
+
+      <div class="appliance" data-app="pool">
+        <label class="app-row">
+          <input type="checkbox" id="appPoolOn">
+          <span class="app-name">🏊 Basen / sauna / jacuzzi</span>
+          <span class="val app-status">—</span>
+        </label>
+        <div class="app-detail" id="appPoolDetail" style="display:none">
+          <label>Roczne zużycie <span class="val"><span id="appPoolVal">2500</span> kWh</span></label>
+          <input type="range" id="appPool" value="2500" min="500" max="8000" step="100">
+          <div class="app-hint">Pompy filtracyjne + podgrzewanie. Szczyt: maj–wrzesień.</div>
+        </div>
+      </div>
+
+      <div class="appliance" data-app="workshop">
+        <label class="app-row">
+          <input type="checkbox" id="appWorkshopOn">
+          <span class="app-name">🔧 Warsztat / urządzenia mocy</span>
+          <span class="val app-status">—</span>
+        </label>
+        <div class="app-detail" id="appWorkshopDetail" style="display:none">
+          <label>Roczne zużycie <span class="val"><span id="appWorkshopVal">1500</span> kWh</span></label>
+          <input type="range" id="appWorkshop" value="1500" min="300" max="6000" step="100">
+          <div class="app-hint">Spawarka, kompresor, obrabiarki — głównie dni robocze.</div>
+        </div>
+      </div>
+
+      <div class="total-bar">
+        <span>Suma roczna</span>
+        <span class="total-val"><span id="annualUseTotal">2200</span> kWh</span>
+      </div>
+    </div>
+
+    <!-- 2b. PROFIL SEZONOWY -->
+    <div class="card">
+      <div class="card-title mint">2b · Profil sezonowy</div>
+      <div class="info" style="margin-top:0; margin-bottom:12px">
+        Profil obliczony automatycznie na podstawie zaznaczonych odbiorników. Możesz go ręcznie skorygować.
+      </div>
+      <details open>
+        <summary>Profil miesięczny (kWh / udział PV %)</summary>
+        <table class="profile-table" id="profileTable">
+          <thead><tr><th>Mies.</th><th style="text-align:right">Zużycie [kWh]</th><th style="text-align:right">Produkcja PV [%]</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="app-hint" style="margin-top:8px">Kolumna zużycia: kWh w miesiącu (suma = roczne). Kolumna PV: % rocznej produkcji (suma = 100%).</div>
+        <button id="resetProfile" class="btn-reset">↺ Resetuj do auto</button>
+      </details>
+    </div>
+
+    <!-- 3. INSTALACJA PV -->
+    <div class="card">
+      <div class="card-title blue">3 · Instalacja PV</div>
+      <div class="field">
+        <label>Typ paneli <span class="val" id="panelTypeName">Mono PERC</span></label>
+        <select id="panelType">
+          <option value="poly">Polikrystaliczny (Poly-Si) — budżet</option>
+          <option value="perc" selected>Mono PERC half-cut — standard</option>
+          <option value="topcon">TOPCon N-type — nowa generacja</option>
+          <option value="hjt">HJT heterozłącze — premium</option>
+          <option value="thin">Cienkowarstwowy CdTe — niszowy</option>
+        </select>
+      </div>
+      <div class="panel-specs" id="panelSpecs">
+        <div class="spec"><span class="spec-lab">Sprawność</span><span class="spec-val" id="specEff">20%</span></div>
+        <div class="spec"><span class="spec-lab">Realny uzysk</span><span class="spec-val" id="specYield">1050 kWh/kWp</span></div>
+        <div class="spec"><span class="spec-lab">Światło rozproszone</span><span class="spec-val" id="specLight">+0%</span></div>
+        <div class="spec"><span class="spec-lab">Straty temp. (rok)</span><span class="spec-val" id="specTempLoss">−2%</span></div>
+        <div class="spec"><span class="spec-lab">Wsp. temp. γP</span><span class="spec-val" id="specTemp">−0.35%/°C</span></div>
+        <div class="spec"><span class="spec-lab">Degradacja</span><span class="spec-val" id="specDeg">0.55%/rok</span></div>
+        <div class="spec"><span class="spec-lab">Powierzchnia dachu</span><span class="spec-val" id="specArea">15 m²</span></div>
+        <div class="spec"><span class="spec-lab">Produkcja roczna</span><span class="spec-val" id="specProd">3150 kWh</span></div>
+      </div>
+      <div class="panel-desc" id="panelDesc">Standard rynkowy 2026. Najlepszy stosunek ceny do uzysku.</div>
+      <div class="field">
+        <label>Województwo <span class="val" id="voivodeshipYield">1040 kWh/kWp</span></label>
+        <select id="voivodeship"></select>
+      </div>
+      <div class="field">
+        <label>Moc instalacji <span class="val"><span id="pvKwpVal">3.0</span> kWp</span></label>
+        <input type="range" id="pvKwp" value="3.0" min="2" max="20" step="0.5">
+      </div>
+      <div class="field">
+        <label>Uzysk bazowy <span class="val"><span id="yieldVal">1040</span> kWh/kWp</span></label>
+        <input type="range" id="yieldKwp" value="1040" min="800" max="1200" step="10">
+        <div class="app-hint" id="yieldHint">Wartość z województwa. Przesuń suwak, aby ustawić ręcznie.</div>
+      </div>
+      <div class="field">
+        <label>Koszt PV (Mono PERC) <span class="val"><span id="costKwpVal">4500</span> zł/kWp</span></label>
+        <input type="range" id="costKwp" value="4500" min="3000" max="7000" step="100">
+      </div>
+      <div class="field">
+        <label>Auto-konsumpcja bez magazynu <span class="val"><span id="autoVal">30</span>%</span></label>
+        <input type="range" id="autoUse" value="30" min="15" max="60" step="1">
+      </div>
+      <div class="field">
+        <label>Dotacja "Mój Prąd" / inne <span class="val"><span id="grantVal">0</span> zł</span></label>
+        <input type="range" id="grant" value="0" min="0" max="20000" step="500">
+      </div>
+    </div>
+
+    <!-- 4. MAGAZYN -->
+    <div class="card">
+      <div class="card-title red">4 · Magazyn energii</div>
+      <div class="field">
+        <label>Pojemność <span class="val"><span id="batKwhVal">10</span> kWh</span></label>
+        <input type="range" id="batKwh" value="10" min="0" max="30" step="1">
+      </div>
+      <div class="field">
+        <label>Koszt magazynu <span class="val"><span id="batCostKwhVal">2200</span> zł/kWh</span></label>
+        <input type="range" id="batCostKwh" value="2200" min="1500" max="3500" step="100">
+      </div>
+      <div class="bat-result">
+        <div class="bat-result-row">
+          <span>Autokonsumpcja bez magazynu</span>
+          <span class="bat-result-val" id="selfNoBatPct">31%</span>
+        </div>
+        <div class="bat-result-row">
+          <span>Autokonsumpcja z magazynem</span>
+          <span class="bat-result-val mint" id="selfBatPct">58%</span>
+        </div>
+      </div>
+      <div class="info" style="margin-top:8px">
+        Autokonsumpcja z magazynem liczona jest <b>dobowo</b>: bateria przechwytuje dzienne nadwyżki i oddaje je wieczorem. Korzyść rośnie z pojemnością — przy <b>0 kWh scenariusz „PV + magazyn" jest tożsamy z „PV"</b>.
+      </div>
+    </div>
+
+    <!-- 5. KREDYT -->
+    <div class="card">
+      <div class="card-title">5 · Finansowanie</div>
+      <div class="field">
+        <label class="checkbox"><input type="checkbox" id="useCredit"> Finansowanie kredytem</label>
+      </div>
+      <div id="creditPanel" style="display:none">
+        <div class="field">
+          <label>Udział kredytu <span class="val"><span id="creditShareVal">100</span>%</span></label>
+          <input type="range" id="creditShare" value="100" min="10" max="100" step="5">
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Okres <span class="val"><span id="creditYearsVal">10</span> lat</span></label>
+            <input type="range" id="creditYears" value="10" min="2" max="20" step="1">
+          </div>
+          <div class="field">
+            <label>RRSO <span class="val"><span id="creditRateVal">9.0</span>%</span></label>
+            <input type="range" id="creditRate" value="9.0" min="3" max="15" step="0.1">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. PARAMETRY DŁUGOTERMINOWE -->
+    <div class="card">
+      <div class="card-title">6 · Horyzont inwestycji</div>
+      <div class="field">
+        <label>Okres analizy <span class="val"><span id="horizonVal">15</span> lat</span></label>
+        <input type="range" id="horizon" value="15" min="5" max="25" step="1">
+      </div>
+      <div class="field">
+        <label>Wzrost cen prądu r/r <span class="val"><span id="priceGrowthVal">4</span>%</span></label>
+        <input type="range" id="priceGrowth" value="4" min="0" max="15" step="0.5">
+      </div>
+      <div class="field">
+        <label>Degradacja paneli r/r <span class="val"><span id="degradationVal">0.55</span>% <span style="color:var(--text-dim)">(z typu panela)</span></span></label>
+        <div class="info" style="margin-top:4px">Degradacja jest ustalana automatycznie na podstawie wybranego typu paneli w kafelku 3.</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ============ PRAWA KOLUMNA: WYNIKI ============ -->
+  <main>
+
+    <!-- KPI -->
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Czas zwrotu</div>
+        <div class="kpi-value"><span id="kpiPayback">—</span><span class="kpi-unit">lat</span></div>
+        <div class="kpi-delta" id="kpiPaybackNote">scenariusz: PV</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Oszczędność / rok</div>
+        <div class="kpi-value"><span id="kpiYearly">—</span><span class="kpi-unit">zł</span></div>
+        <div class="kpi-delta" id="kpiYearlyNote">vs. brak PV, rok 1</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Zysk netto (cały okres)</div>
+        <div class="kpi-value"><span id="kpiNpv">—</span><span class="kpi-unit">zł</span></div>
+        <div class="kpi-delta" id="kpiNpvNote">po odjęciu inwestycji</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Najlepszy scenariusz</div>
+        <div class="kpi-value" style="font-size:22px"><span id="kpiBest">—</span></div>
+        <div class="kpi-delta" id="kpiBestNote">na podstawie zysku</div>
+      </div>
+    </div>
+
+    <!-- PORÓWNANIE 3 SCENARIUSZY -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Porównanie scenariuszy — koszt całkowity przez <span id="horizonLabel">15</span> lat</div>
+      </div>
+      <div class="scenarios" id="scenariosBox"></div>
+      <div id="cumulativeChart"></div>
+      <div class="legend" style="margin-top:12px">
+        <span class="legend-item"><span class="legend-dot" style="background:var(--red)"></span>Bez PV</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--sun)"></span>PV bez magazynu</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--mint)"></span>PV + magazyn</span>
+      </div>
+    </div>
+
+    <!-- WYKRES SEZONOWY -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Profil miesięczny — zużycie vs produkcja PV (rok 1)</div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>Zużycie</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--sun)"></span>Produkcja PV</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--mint)"></span>Auto-konsumpcja</span>
+        </div>
+      </div>
+      <div id="seasonalChart"></div>
+    </div>
+
+    <!-- PRZEPŁYWY -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Skumulowany przepływ pieniędzy</div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:var(--sun)"></span>PV</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--mint)"></span>PV + magazyn</span>
+        </div>
+      </div>
+      <div id="cashflowChart"></div>
+      <div class="info">
+        Linia przekraczająca <b>0 zł</b> = moment zwrotu inwestycji. Uwzględnia: oszczędność na rachunkach, przychód z odsprzedaży RCEm, dotację, koszt zakupu/raty kredytu, wzrost cen prądu i degradację paneli.
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<footer>
+  Modelowanie: net-billing wg ustawy o OZE · RCEm + 23% ekw. VAT · profil PSE/OIRE · uzysk PV typowy dla Polski (~1050 kWh/kWp).<br>
+  Kalkulator służy do orientacyjnej oceny — finalna decyzja powinna uwzględnić indywidualny profil godzinowy zużycia i ofertę sprzedawcy energii.
+</footer>
+
+</div>
+
+<script>
+// ============== DANE BAZOWE ==============
+
+// Profil produkcji PV w Polsce — udział procentowy każdego miesiąca w produkcji rocznej (suma 100%).
+const PV_PROFILE = [3.0, 4.5, 8.0, 11.0, 13.5, 13.5, 13.0, 12.0, 9.5, 6.5, 3.5, 2.0];
+
+// Profile zużycia per odbiornik — udział procentowy każdego miesiąca w zużyciu rocznym tego odbiornika (suma 100%).
+// Każdy odbiornik ma własną krzywą; profil całkowity to ważona suma.
+const APPLIANCE_PROFILES = {
+  // Bazowe — w miarę płaski, lekki szczyt zimą (więcej oświetlenia, krótsze dni)
+  base:     [9.3, 8.6, 8.5, 7.9, 7.7, 7.5, 7.5, 7.7, 8.0, 8.6, 9.3, 9.4],
+  // Ogrzewanie elektryczne — silne szczyty zimowe, prawie zero w lecie
+  heating:  [18, 16, 12, 6, 2, 0.5, 0.5, 0.5, 2, 8, 15, 19.5],
+  // Pompa ciepła — szczyty zimowe ale złagodzone (COP wyższy w łagodne dni)
+  hp:       [16, 14, 11, 7, 4, 2, 2, 2, 4, 8, 13, 17],
+  // Klimatyzacja — szczyty letnie, czerwiec-sierpień
+  ac:       [0, 0, 0, 2, 8, 22, 30, 25, 10, 3, 0, 0],
+  // EV — w miarę równo, lekko więcej zimą (mniejszy zasięg + ogrzewanie kabiny)
+  ev:       [10.5, 10, 9, 8, 7, 7, 7, 7, 7.5, 8.5, 9.5, 9],
+  // Basen/jacuzzi — sezon letni
+  pool:     [1, 1, 2, 5, 12, 18, 22, 20, 13, 4, 1, 1],
+  // Warsztat — w miarę równo, lekka przewaga jesień-zima (więcej czasu w domu)
+  workshop: [10, 9, 9, 8, 7.5, 7, 6.5, 7, 8, 9, 9.5, 9.5]
+};
+
+const MONTHS = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
+
+// ====== WOJEWÓDZTWA — średni roczny uzysk PV [kWh/kWp] ======
+// Wartości uśrednione dla instalacji południowej, oparte na mapach nasłonecznienia (SolarGIS/PTPV).
+// Gradient: południowy wschód (~1080) -> północny zachód/pomorze (~970).
+const VOIVODESHIPS = {
+  dolnoslaskie:        { name: 'Dolnośląskie',         yield: 1020 },
+  kujawskoPomorskie:   { name: 'Kujawsko-pomorskie',   yield: 995  },
+  lubelskie:           { name: 'Lubelskie',            yield: 1075 },
+  lubuskie:            { name: 'Lubuskie',             yield: 1005 },
+  lodzkie:             { name: 'Łódzkie',              yield: 1030 },
+  malopolskie:         { name: 'Małopolskie',          yield: 1060 },
+  mazowieckie:         { name: 'Mazowieckie',          yield: 1040 },
+  opolskie:            { name: 'Opolskie',             yield: 1045 },
+  podkarpackie:        { name: 'Podkarpackie',         yield: 1080 },
+  podlaskie:           { name: 'Podlaskie',            yield: 1015 },
+  pomorskie:           { name: 'Pomorskie',            yield: 985  },
+  slaskie:             { name: 'Śląskie',              yield: 1025 },
+  swietokrzyskie:      { name: 'Świętokrzyskie',       yield: 1050 },
+  warminskoMazurskie:  { name: 'Warmińsko-mazurskie',  yield: 980  },
+  wielkopolskie:       { name: 'Wielkopolskie',        yield: 1010 },
+  zachodniopomorskie:  { name: 'Zachodniopomorskie',   yield: 975  }
+};
+
+// ====== TYPY PANELI FOTOWOLTAICZNYCH ======
+// Parametry oparte na danych rynkowych 2025/2026.
+// Realny uzysk liczony jest z DWÓCH rozdzielnych czynników:
+//   1. lightFactor — zachowanie przy świetle rozproszonym/zachmurzeniu (mnożnik, 1.00 = referencja Mono PERC)
+//   2. tempCoef — współczynnik temperaturowy mocy γP [%/°C]; straty liczone miesiąc po miesiącu
+//      względem temperatury ogniwa (= temp. powietrza + przyrost od nasłonecznienia)
+// efficiency: sprawność modułu [%] -> przekłada się na powierzchnię (W/m²).
+// degradation: roczny spadek mocy [%/rok].
+// costFactor: względny mnożnik ceny za kWp (1.00 = Mono PERC bazowy).
+const PANEL_TYPES = {
+  poly: {
+    name: 'Polikrystaliczny',
+    short: 'Poly-Si',
+    efficiency: 16,
+    lightFactor: 0.97,   // słabsze zbieranie światła rozproszonego
+    tempCoef: -0.40,     // najgorszy w upale
+    degradation: 0.8,
+    costFactor: 0.90,
+    desc: 'Najtańszy, schodzący z rynku. Niska sprawność = więcej m² na tę samą moc.'
+  },
+  perc: {
+    name: 'Mono PERC (half-cut)',
+    short: 'Mono PERC',
+    efficiency: 20,
+    lightFactor: 1.00,   // referencja
+    tempCoef: -0.35,
+    degradation: 0.55,
+    costFactor: 1.00,
+    desc: 'Standard rynkowy 2026. Najlepszy stosunek ceny do uzysku.'
+  },
+  topcon: {
+    name: 'TOPCon (N-type)',
+    short: 'TOPCon',
+    efficiency: 22,
+    lightFactor: 1.03,   // lepsze światło rozproszone (bifacial-ready)
+    tempCoef: -0.30,
+    degradation: 0.40,
+    costFactor: 1.10,
+    desc: 'Nowa generacja. Wyższy uzysk, niższa degradacja, dłuższa żywotność.'
+  },
+  hjt: {
+    name: 'HJT (heterozłącze)',
+    short: 'HJT',
+    efficiency: 23,
+    lightFactor: 1.04,   // doskonałe światło rozproszone
+    tempCoef: -0.25,     // najlepszy w upale
+    degradation: 0.25,
+    costFactor: 1.25,
+    desc: 'Segment premium. Najwyższy uzysk i żywotność, najwyższa cena.'
+  },
+  thin: {
+    name: 'Cienkowarstwowy (CdTe)',
+    short: 'Thin-film',
+    efficiency: 12,
+    lightFactor: 1.06,   // najlepszy w zachmurzeniu/rozproszonym świetle
+    tempCoef: -0.25,
+    degradation: 0.50,
+    costFactor: 0.85,
+    desc: 'Doskonały w zachmurzeniu i upale, ale wymaga dużo powierzchni (niska sprawność).'
+  }
+};
+
+// ====== PARAMETRY MAGAZYNU ENERGII ======
+// Round-trip: straty ładowania/rozładowania baterii LiFePO4 ~10% (sprawność 90%).
+// Model dobowy: bateria może na dobę przesunąć max swoją pojemność (× sprawność),
+// ograniczone przez dostępną nadwyżkę PV i niepokryte wieczorne zużycie.
+// Przy batKwh = 0 przesunięcie wynosi 0 -> scenariusz "PV+magazyn" = "PV".
+const BAT_ROUNDTRIP = 0.90;     // sprawność round-trip ładowanie->rozładowanie
+
+// Średnie miesięczne temperatury powietrza w Polsce [°C] (norma 1991-2020, centralna Polska).
+const MONTHLY_TEMP = [-1.5, -0.4, 3.5, 9.0, 14.0, 17.5, 19.5, 19.0, 14.0, 9.0, 4.5, 0.0];
+
+// Przyrost temperatury ogniwa ponad temperaturę powietrza w czasie produkcji [°C].
+// W miesiącach o wyższym nasłonecznieniu ogniwo grzeje się mocniej (do ~30°C ponad powietrze w pełnym słońcu).
+// Skalowane proporcjonalnie do udziału produkcji PV (lato = większy przyrost).
+const CELL_TEMP_RISE = [12, 14, 18, 22, 26, 28, 28, 27, 23, 18, 13, 10];
+
+const state = {
+  tariff: 'G11',
+  priceDay: 1.10,
+  priceNight: 0.60,
+  fixedFee: 35,
+  rcem: 0.30,
+  appliances: {
+    base:     { on: true,  kwh: 2200 },
+    heating:  { on: false, kwh: 8000 },
+    hp:       { on: false, kwh: 3500 },
+    ac:       { on: false, kwh: 800  },
+    ev:       { on: false, kwh: 3000 },
+    pool:     { on: false, kwh: 2500 },
+    workshop: { on: false, kwh: 1500 }
+  },
+  customUse: null,
+  customPv: null,
+  pvKwp: 3.0,
+  panelType: 'perc',
+  voivodeship: 'mazowieckie',
+  yieldKwp: 1040,   // uzysk bazowy — domyślnie z województwa mazowieckiego, użytkownik może nadpisać
+  yieldManual: false,  // czy użytkownik ręcznie zmienił uzysk (odłącza od województwa)
+  costKwp: 4500,
+  autoUse: 30,
+  grant: 0,
+  batKwh: 10,
+  batCostKwh: 2200,
+  // Docelowa autokonsumpcja w miesiącach nadmiaru (cel, do którego dąży magazyn latem).
+  // Nie jest sterowana suwakiem — realna autokonsumpcja wynika z modelu dobowego (pojemność + profil).
+  autoBat: 80,
+  useCredit: false,
+  creditShare: 100,
+  creditYears: 10,
+  creditRate: 9.0,
+  horizon: 15,
+  priceGrowth: 4,
+  degradation: 0.6
+};
+
+// Wylicza całkowite roczne zużycie ze wszystkich aktywnych odbiorników
+function totalAnnualUse() {
+  let sum = 0;
+  for (const k in state.appliances) {
+    if (state.appliances[k].on) sum += state.appliances[k].kwh;
+  }
+  return sum;
+}
+
+// Wylicza profil sezonowy jako ważoną sumę profili aktywnych odbiorników
+// Zwraca tablicę 12 wartości w kWh (suma = totalAnnualUse).
+function autoSeasonalProfile() {
+  const result = new Array(12).fill(0);
+  for (const k in state.appliances) {
+    const app = state.appliances[k];
+    if (!app.on) continue;
+    const prof = APPLIANCE_PROFILES[k];
+    for (let i = 0; i < 12; i++) {
+      result[i] += app.kwh * prof[i] / 100;
+    }
+  }
+  return result;
+}
+
+// ============== LOGIKA OBLICZEŃ ==============
+
+// Miesięczny mnożnik strat temperaturowych dla danego typu panela.
+// Strata = (T_ogniwa - 25°C) × γP, gdzie T_ogniwa = T_powietrza + przyrost od nasłonecznienia.
+// W chłodne miesiące ogniwo bywa poniżej 25°C -> mnożnik > 1 (panel pracuje wydajniej niż w STC!).
+// Zwraca tablicę 12 mnożników (np. 1.02 zimą, 0.94 latem).
+function monthlyTempFactor() {
+  const gamma = PANEL_TYPES[state.panelType].tempCoef; // %/°C, ujemny
+  return MONTHLY_TEMP.map((airTemp, i) => {
+    const cellTemp = airTemp + CELL_TEMP_RISE[i];
+    const lossPct = (cellTemp - 25) * gamma; // np. (45-25)*(-0.35) = -7% strat
+    return 1 + lossPct / 100;
+  });
+}
+
+// Produkcja PV miesiąc po miesiącu [kWh] — uwzględnia profil sezonowy, światło rozproszone i straty temp.
+// produkcja[i] = pvKwp × yieldBazowy × lightFactor × (profilPV[i]/100) × tempFactor[i]
+function monthlyProduction() {
+  const panel = PANEL_TYPES[state.panelType];
+  const tempF = monthlyTempFactor();
+  const pvProf = state.customPv || PV_PROFILE;
+  const baseAnnual = state.pvKwp * state.yieldKwp * panel.lightFactor;
+  return pvProf.map((share, i) => baseAnnual * share / 100 * tempF[i]);
+}
+
+// Roczna produkcja całej instalacji [kWh] — suma miesięcy (zawiera już straty temp. i światło)
+function annualProduction() {
+  return monthlyProduction().reduce((a, b) => a + b, 0);
+}
+
+// Roczny efektywny uzysk [kWh/kWp] — produkcja / moc (do wyświetlenia w specyfikacji)
+function effectiveYield() {
+  return state.pvKwp > 0 ? annualProduction() / state.pvKwp : 0;
+}
+
+// Degradacja roczna zależna od typu panela [%/rok]
+function panelDegradation() {
+  return PANEL_TYPES[state.panelType].degradation;
+}
+
+// Koszt instalacji PV [zł] z uwzgl. mnożnika cenowego typu panela
+function pvInvestment() {
+  const panel = PANEL_TYPES[state.panelType];
+  return state.pvKwp * state.costKwp * panel.costFactor;
+}
+
+// Powierzchnia dachu wymagana dla danej mocy i typu panela [m²]
+function requiredArea() {
+  const panel = PANEL_TYPES[state.panelType];
+  return state.pvKwp * 1000 / (1000 * panel.efficiency / 100);
+}
+
+function pmt(principal, annualRate, years) {
+  // Rata stała kredytu
+  if (annualRate === 0) return principal / (years * 12);
+  const r = annualRate / 100 / 12;
+  const n = years * 12;
+  return principal * r * Math.pow(1+r, n) / (Math.pow(1+r, n) - 1);
+}
+
+function effectiveSellPrice() {
+  // RCEm + 23% ekw. VAT
+  return state.rcem * 1.23;
+}
+
+function effectiveBuyPrice() {
+  // Średnia ważona ceny — dla G11 to po prostu priceDay,
+  // dla G12/G12W zakładamy 50/50 dzień-noc dla uproszczenia.
+  if (state.tariff === 'G11') return state.priceDay;
+  // G12: ~70% dzień, 30% noc, G12W: ~60/40 (przybliżenie)
+  if (state.tariff === 'G12') return state.priceDay*0.65 + state.priceNight*0.35;
+  return state.priceDay*0.55 + state.priceNight*0.45;
+}
+
+function monthlyData() {
+  // Zwraca tablicę 12 miesięcy z: zużycie, produkcja PV, auto-kons. bez/z magazynem, oddana, dobrana
+  // Profil zużycia: użytkownik może nadpisać ręcznie (customUse w kWh/miesiąc), inaczej kompozycja odbiorników.
+  const useArr = state.customUse || autoSeasonalProfile();  // kWh/miesiąc
+  const prodArr = monthlyProduction();                      // kWh/miesiąc (z temp. i światłem)
+  const autoNoBat_pct = state.autoUse / 100;
+
+  return MONTHS.map((m, i) => {
+    const use = useArr[i];                              // już w kWh
+    const pv = prodArr[i];                              // już w kWh, z mnożnikiem temp.
+
+    // ====== Auto-konsumpcja BEZ magazynu ======
+    let selfNoBat;
+    if (pv <= use) {
+      selfNoBat = Math.min(pv, use, pv * Math.min(1, autoNoBat_pct * 2.5));
+    } else {
+      selfNoBat = Math.min(use, pv * autoNoBat_pct);
+    }
+    const surplusNoBat = Math.max(0, pv - selfNoBat);
+    const importNoBat = Math.max(0, use - selfNoBat);
+
+    // ====== Auto-konsumpcja Z magazynem ======
+    // Magazyn pracuje w cyklu dobowym: w dzień ładuje się nadwyżką PV (tym co przekracza
+    // bieżące zużycie), wieczorem/nocą oddaje energię na pokrycie zużycia.
+    // KLUCZOWE: korzyść z magazynu = ile dodatkowo zużyjemy ponad scenariusz bez baterii.
+    // Przy batKwh = 0 ta korzyść wynosi 0, więc selfBat = selfNoBat (brak różnicy).
+    //
+    // Model dobowy uśredniony do miesiąca:
+    //   - dzienna nadwyżka = (produkcja - bezpośrednia autokonsumpcja) / dni
+    //   - bateria może w ciągu doby zmagazynować min(dzienna nadwyżka, pojemność) i oddać z round-trip
+    //   - oddana energia pokrywa nocne/wieczorne zużycie, max do wielkości tego zużycia
+    const daysInMonth = 30;
+    const pvDaily = pv / daysInMonth;
+    const useDaily = use / daysInMonth;
+    // Bezpośrednia (równoczasowa) autokonsumpcja dzienna — to samo co bez magazynu
+    const directDaily = selfNoBat / daysInMonth;
+    // Dzienna nadwyżka dostępna do zmagazynowania
+    const surplusDaily = Math.max(0, pvDaily - directDaily);
+    // Dzienne zużycie jeszcze niepokryte (wieczór/noc), które bateria mogłaby pokryć
+    const uncoveredDaily = Math.max(0, useDaily - directDaily);
+    // Ile bateria realnie przesuwa na dobę: ograniczone pojemnością, nadwyżką i niepokrytym zużyciem
+    const batThroughputDaily = Math.min(
+      state.batKwh * BAT_ROUNDTRIP,   // pojemność × sprawność (0 gdy batKwh=0!)
+      surplusDaily * BAT_ROUNDTRIP,   // tyle ile jest nadwyżki do zmagazynowania
+      uncoveredDaily                  // tyle ile jest wieczornego zużycia do pokrycia
+    );
+    // Autokonsumpcja z magazynem = bezpośrednia + to co przesunęła bateria
+    let selfBat = selfNoBat + batThroughputDaily * daysInMonth;
+    selfBat = Math.min(selfBat, use, pv);  // nie więcej niż zużycie ani produkcja
+    const surplusBat = Math.max(0, pv - selfBat);
+    const importBat = Math.max(0, use - selfBat);
+
+    return { month: m, use, pv, selfNoBat, surplusNoBat, importNoBat, selfBat, surplusBat, importBat };
+  });
+}
+
+function yearlyTotals(degradationFactor = 1, priceMultiplier = 1) {
+  // Oblicza roczne wartości finansowe dla 3 scenariuszy z uwzgl. degradacji i wzrostu cen
+  // 
+  // MODEL NET-BILLINGU:
+  // Sprzedawca skupuje energię po cenie sell (RCEm+23%), a klient kupuje po cenie buy.
+  // Wartość nadwyżki trafia do "depozytu prosumenckiego", którego można użyć tylko do pomniejszenia
+  // rachunku za zakupioną energię. Niewykorzystany depozyt: 20% zwracane gotówką (max 12 mies.).
+  //
+  // W praktyce roczny bilans wygląda tak:
+  //   - przychód z odsprzedaży = surplus_kWh * sell_zł
+  //   - rachunek brutto = import_kWh * buy_zł
+  //   - rachunek netto = max(0, brutto - przychód) - czyli depozyt redukuje rachunek do zera, ale nie poniżej
+  //   - jeśli przychód > brutto, "nadmiar" * 0.20 wraca jako gotówka (zwrot wartości niewykorzystanej)
+  //
+  // Plus stałe opłaty dystrybucyjne (fixed) płaci się zawsze.
+
+  const md = monthlyData();
+  const buy = effectiveBuyPrice() * priceMultiplier;
+  const sell = effectiveSellPrice() * priceMultiplier;
+  const fixed = state.fixedFee * 12;
+
+  let costNoPV = 0;
+  let importPV = 0, surplusPV = 0;
+  let importBat = 0, surplusBat = 0;
+
+  for (const m of md) {
+    costNoPV += m.use * buy;
+    // Skala produkcji/autokonsumpcji wg degradacji
+    const _selfNoBat = m.selfNoBat * degradationFactor;
+    const _surplusNoBat = m.surplusNoBat * degradationFactor;
+    importPV += Math.max(0, m.use - _selfNoBat);
+    surplusPV += _surplusNoBat;
+
+    const _selfBat = m.selfBat * degradationFactor;
+    const _surplusBat = m.surplusBat * degradationFactor;
+    importBat += Math.max(0, m.use - _selfBat);
+    surplusBat += _surplusBat;
+  }
+
+  // Wartość depozytu (przychodu) ze sprzedaży nadwyżek
+  const depositPV = surplusPV * sell;
+  const depositBat = surplusBat * sell;
+  // Wartość zakupionej energii brutto (przed użyciem depozytu)
+  const grossImportPV = importPV * buy;
+  const grossImportBat = importBat * buy;
+
+  // Depozyt pokrywa rachunek za import, niewykorzystana część daje 20% zwrot
+  const billPV = Math.max(0, grossImportPV - depositPV);
+  const billBat = Math.max(0, grossImportBat - depositBat);
+  const unusedDepositPV = Math.max(0, depositPV - grossImportPV);
+  const unusedDepositBat = Math.max(0, depositBat - grossImportBat);
+  const cashbackPV = unusedDepositPV * 0.20;   // 20% zwrotu z niewykorzystanej nadwyżki
+  const cashbackBat = unusedDepositBat * 0.20;
+
+  // Koszt netto = rachunek - cashback + opłaty stałe
+  const netPV = billPV - cashbackPV + fixed;
+  const netBat = billBat - cashbackBat + fixed;
+
+  return {
+    noPV: costNoPV + fixed,
+    pv: netPV,
+    pvBat: netBat,
+    // Diagnostyka:
+    grossImportPV, depositPV, billPV, cashbackPV,
+    grossImportBat, depositBat, billBat, cashbackBat,
+    surplusPV, surplusBat, importPV, importBat,
+    selfNoBat: md.reduce((s,m)=>s+m.selfNoBat,0) * degradationFactor,
+    selfBat: md.reduce((s,m)=>s+m.selfBat,0) * degradationFactor
+  };
+}
+
+function fullSimulation() {
+  // Symuluje cały okres analizy dla 3 scenariuszy: bez PV, PV, PV+magazyn
+  const years = state.horizon;
+  const pvInvest = pvInvestment() - state.grant;
+  const batInvest = state.batKwh * state.batCostKwh;
+  const pvBatInvest = pvInvest + batInvest;
+
+  // Kredyt
+  let pvCash = 0, pvBatCash = 0;
+  let pvMonthly = 0, pvBatMonthly = 0;
+  let creditYearsPv = 0, creditYearsBat = 0;
+
+  if (state.useCredit) {
+    const sharePv = pvInvest * state.creditShare / 100;
+    const shareBat = pvBatInvest * state.creditShare / 100;
+    pvCash = pvInvest - sharePv;  // wkład własny
+    pvBatCash = pvBatInvest - shareBat;
+    pvMonthly = pmt(sharePv, state.creditRate, state.creditYears);
+    pvBatMonthly = pmt(shareBat, state.creditRate, state.creditYears);
+    creditYearsPv = state.creditYears;
+    creditYearsBat = state.creditYears;
+  } else {
+    pvCash = pvInvest;
+    pvBatCash = pvBatInvest;
+  }
+
+  // Tablice skumulowanych przepływów (saldo: ujemne = wydatki przewyższają oszczędności)
+  // Punkt 0 = początek inwestycji, wydatkujemy wkład własny
+  const noPVCum = [0];
+  const pvCum = [-pvCash];
+  const pvBatCum = [-pvBatCash];
+
+  for (let y = 1; y <= years; y++) {
+    const priceMul = Math.pow(1 + state.priceGrowth/100, y-1);
+    const degradFactor = Math.pow(1 - panelDegradation()/100, y-1);
+    const yt = yearlyTotals(degradFactor, priceMul);
+
+    // Roczna płatność kredytu (jeśli kredyt jest aktywny w tym roku)
+    const creditPV = (state.useCredit && y <= creditYearsPv) ? pvMonthly*12 : 0;
+    const creditBat = (state.useCredit && y <= creditYearsBat) ? pvBatMonthly*12 : 0;
+
+    noPVCum.push(noPVCum[y-1] - yt.noPV);
+    pvCum.push(pvCum[y-1] - yt.pv - creditPV);
+    pvBatCum.push(pvBatCum[y-1] - yt.pvBat - creditBat);
+  }
+
+  // Saldo "scenariusz vs brak PV" — to mierzy faktyczną opłacalność PV
+  // Saldo PV-względne = pvCum - noPVCum (jeśli >=0 -> PV się opłaca)
+  const relPV = pvCum.map((v,i) => v - noPVCum[i]);
+  const relPVbat = pvBatCum.map((v,i) => v - noPVCum[i]);
+
+  // Czas zwrotu: pierwszy rok, gdy relPV >= 0 (porównanie inwestycyjne)
+  // ALE: pvCum zaczyna od -pvCash, więc względnie startuje od -pvCash; szukamy pierwszego momentu gdy oszczędności
+  // skompensują inwestycję.
+  const paybackPV = findPayback(relPV);
+  const paybackBat = findPayback(relPVbat);
+
+  // Zysk netto po horyzoncie
+  const npvPV = relPV[years];
+  const npvBat = relPVbat[years];
+
+  // Rok 1 oszczędności (vs brak PV) — bez kosztów kredytu/inwestycji
+  const yt1 = yearlyTotals(1, 1);
+  const savingsPV1 = yt1.noPV - yt1.pv;
+  const savingsBat1 = yt1.noPV - yt1.pvBat;
+
+  return {
+    pvInvest, batInvest, pvBatInvest,
+    pvCash, pvBatCash,
+    pvMonthly, pvBatMonthly,
+    noPVCum, pvCum, pvBatCum,
+    relPV, relPVbat,
+    paybackPV, paybackBat,
+    npvPV, npvBat,
+    savingsPV1, savingsBat1,
+    // Rachunki roku 1 (bez inflacji, bez kredytu) — do prezentacji w UI
+    billNoPV1: yt1.noPV,
+    billPV1: yt1.pv,
+    billBat1: yt1.pvBat,
+    totalCostNoPV: -noPVCum[years],
+    totalCostPV: -pvCum[years],
+    totalCostPVbat: -pvBatCum[years]
+  };
+}
+
+function findPayback(rel) {
+  // Pierwszy rok kiedy wartość >= 0 (z interpolacją)
+  for (let i = 1; i < rel.length; i++) {
+    if (rel[i] >= 0 && rel[i-1] < 0) {
+      const frac = -rel[i-1] / (rel[i] - rel[i-1]);
+      return (i-1) + frac;
+    }
+  }
+  if (rel[rel.length-1] >= 0) return 0;
+  return null;
+}
+
+// ============== RYSOWANIE ==============
+
+function fmt(n, dec=0) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return n.toLocaleString('pl-PL', {minimumFractionDigits: dec, maximumFractionDigits: dec});
+}
+
+function fmtCurrency(n) { return fmt(n, 0) + ' zł'; }
+
+function svgBarChart(containerId, data, opts={}) {
+  const W = opts.width || 900;
+  const H = opts.height || 280;
+  const PAD = {top: 20, right: 20, bottom: 32, left: 60};
+  const cw = W - PAD.left - PAD.right;
+  const ch = H - PAD.top - PAD.bottom;
+
+  const allVals = data.flatMap(d => d.values);
+  const maxV = Math.max(...allVals, 1);
+
+  const groups = data[0].values.length;
+  const groupW = cw / groups;
+  const seriesCount = data.length;
+  const barW = (groupW - 8) / seriesCount;
+
+  let bars = '';
+  data.forEach((series, sIdx) => {
+    series.values.forEach((v, gIdx) => {
+      const x = PAD.left + gIdx*groupW + 4 + sIdx*barW;
+      const h = (v / maxV) * ch;
+      const y = PAD.top + ch - h;
+      bars += `<rect x="${x}" y="${y}" width="${barW-1}" height="${h}" fill="${series.color}" rx="2"></rect>`;
+    });
+  });
+
+  // X labels
+  let xLabels = '';
+  for (let i = 0; i < groups; i++) {
+    const cx = PAD.left + i*groupW + groupW/2;
+    xLabels += `<text x="${cx}" y="${H-12}" text-anchor="middle" fill="var(--text-dim)" font-family="var(--mono)" font-size="10">${opts.xLabels[i]}</text>`;
+  }
+
+  // Y axis ticks
+  let yTicks = '';
+  const tickCount = 4;
+  for (let t = 0; t <= tickCount; t++) {
+    const val = maxV * t / tickCount;
+    const y = PAD.top + ch - (val/maxV)*ch;
+    yTicks += `<line x1="${PAD.left}" y1="${y}" x2="${W-PAD.right}" y2="${y}" stroke="var(--border-soft)" stroke-width="1"></line>`;
+    yTicks += `<text x="${PAD.left-8}" y="${y+4}" text-anchor="end" fill="var(--text-dim)" font-family="var(--mono)" font-size="10">${fmt(val,0)}</text>`;
+  }
+
+  document.getElementById(containerId).innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+      ${yTicks}${bars}${xLabels}
+    </svg>`;
+}
+
+function svgLineChart(containerId, series, opts={}) {
+  const W = opts.width || 900;
+  const H = opts.height || 280;
+  const PAD = {top: 20, right: 20, bottom: 32, left: 70};
+  const cw = W - PAD.left - PAD.right;
+  const ch = H - PAD.top - PAD.bottom;
+
+  const allVals = series.flatMap(s => s.values);
+  const minV = Math.min(...allVals, 0);
+  const maxV = Math.max(...allVals, 0);
+  const range = maxV - minV || 1;
+
+  const N = series[0].values.length;
+  const stepX = cw / (N - 1);
+
+  const yScale = v => PAD.top + ch - ((v - minV)/range)*ch;
+  const xScale = i => PAD.left + i*stepX;
+
+  // Grid + Y ticks
+  let grid = '';
+  const tickCount = 5;
+  for (let t = 0; t <= tickCount; t++) {
+    const v = minV + (range * t / tickCount);
+    const y = yScale(v);
+    grid += `<line x1="${PAD.left}" y1="${y}" x2="${W-PAD.right}" y2="${y}" stroke="var(--border-soft)" stroke-width="1"></line>`;
+    const lbl = Math.abs(v) >= 1000 ? (v/1000).toFixed(1)+'k' : fmt(v,0);
+    grid += `<text x="${PAD.left-8}" y="${y+4}" text-anchor="end" fill="var(--text-dim)" font-family="var(--mono)" font-size="10">${lbl}</text>`;
+  }
+
+  // Zero line
+  if (minV < 0 && maxV > 0) {
+    const zy = yScale(0);
+    grid += `<line x1="${PAD.left}" y1="${zy}" x2="${W-PAD.right}" y2="${zy}" stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="3,3"></line>`;
+    grid += `<text x="${PAD.left-8}" y="${zy-3}" text-anchor="end" fill="var(--text-muted)" font-family="var(--mono)" font-size="10" font-weight="700">0</text>`;
+  }
+
+  // Lines
+  let lines = '';
+  series.forEach(s => {
+    const pts = s.values.map((v, i) => `${xScale(i)},${yScale(v)}`).join(' ');
+    lines += `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></polyline>`;
+    // Dot at last point
+    const lastV = s.values[s.values.length-1];
+    lines += `<circle cx="${xScale(N-1)}" cy="${yScale(lastV)}" r="4" fill="${s.color}"></circle>`;
+  });
+
+  // X labels
+  let xLabels = '';
+  const xStep = Math.max(1, Math.floor(N / 8));
+  for (let i = 0; i < N; i += xStep) {
+    const cx = xScale(i);
+    xLabels += `<text x="${cx}" y="${H-12}" text-anchor="middle" fill="var(--text-dim)" font-family="var(--mono)" font-size="10">${opts.xLabels[i]}</text>`;
+  }
+  // Last label
+  if ((N-1) % xStep !== 0) {
+    xLabels += `<text x="${xScale(N-1)}" y="${H-12}" text-anchor="middle" fill="var(--text-dim)" font-family="var(--mono)" font-size="10">${opts.xLabels[N-1]}</text>`;
+  }
+
+  document.getElementById(containerId).innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+      ${grid}${lines}${xLabels}
+    </svg>`;
+}
+
+// ============== AKTUALIZACJA UI ==============
+
+function buildProfileTable() {
+  // Profil zużycia: kompozycja z odbiorników (chyba że user nadpisał ręcznie)
+  const useArr = state.customUse || autoSeasonalProfile();
+  const pvArr = state.customPv || PV_PROFILE;
+  const tbody = document.querySelector('#profileTable tbody');
+  tbody.innerHTML = MONTHS.map((m, i) => `
+    <tr>
+      <td class="month">${m}</td>
+      <td><input type="number" data-use="${i}" value="${useArr[i].toFixed(0)}" step="1" min="0"></td>
+      <td><input type="number" data-pv="${i}" value="${pvArr[i].toFixed(1)}" step="0.1" min="0"></td>
+    </tr>
+  `).join('');
+  // Listenery
+  tbody.querySelectorAll('input[data-use]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const arr = Array.from(tbody.querySelectorAll('input[data-use]')).map(i => parseFloat(i.value) || 0);
+      state.customUse = arr;
+      recompute();
+    });
+  });
+  tbody.querySelectorAll('input[data-pv]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const arr = Array.from(tbody.querySelectorAll('input[data-pv]')).map(i => parseFloat(i.value) || 0);
+      state.customPv = arr;
+      recompute();
+    });
+  });
+}
+
+function recompute() {
+  // Update wartości pomocniczych w UI
+  document.getElementById('priceDayVal').textContent = state.priceDay.toFixed(2);
+  document.getElementById('priceNightVal').textContent = state.priceNight.toFixed(2);
+  document.getElementById('fixedFeeVal').textContent = state.fixedFee;
+  document.getElementById('rcemVal').textContent = state.rcem.toFixed(2);
+
+  // Suma odbiorników
+  const annualUse = totalAnnualUse();
+  document.getElementById('annualUseTotal').textContent = annualUse.toLocaleString('pl-PL');
+  // Update wartości każdego odbiornika i status active/inactive
+  for (const k in state.appliances) {
+    const app = state.appliances[k];
+    const valEl = document.getElementById('app' + k.charAt(0).toUpperCase()+k.slice(1)+'Val');
+    if (valEl) valEl.textContent = app.kwh.toLocaleString('pl-PL');
+    const detailEl = document.getElementById('app' + k.charAt(0).toUpperCase()+k.slice(1)+'Detail');
+    const containerEl = document.querySelector(`.appliance[data-app="${k}"]`);
+    if (k === 'base') {
+      containerEl?.classList.add('active');
+    } else {
+      if (app.on) {
+        containerEl?.classList.add('active');
+        if (detailEl) detailEl.style.display = 'block';
+        const statusEl = containerEl?.querySelector('.app-status');
+        if (statusEl) statusEl.textContent = app.kwh.toLocaleString('pl-PL') + ' kWh/rok';
+      } else {
+        containerEl?.classList.remove('active');
+        if (detailEl) detailEl.style.display = 'none';
+        const statusEl = containerEl?.querySelector('.app-status');
+        if (statusEl) statusEl.textContent = '—';
+      }
+    }
+  }
+
+  document.getElementById('pvKwpVal').textContent = state.pvKwp.toFixed(1);
+  document.getElementById('yieldVal').textContent = state.yieldKwp;
+  // Województwo: pokaż jego średni uzysk i czy uzysk jest ręczny czy z regionu
+  const voiv = VOIVODESHIPS[state.voivodeship];
+  document.getElementById('voivodeshipYield').textContent = voiv.yield + ' kWh/kWp';
+  const yieldHint = document.getElementById('yieldHint');
+  if (state.yieldManual) {
+    yieldHint.textContent = `Ręczne nadpisanie (${voiv.name}: ${voiv.yield}). Wybierz województwo ponownie, aby zresetować.`;
+    yieldHint.style.color = 'var(--sun)';
+  } else {
+    yieldHint.textContent = `Średnia dla: ${voiv.name}. Przesuń suwak, aby ustawić ręcznie.`;
+    yieldHint.style.color = '';
+  }
+  document.getElementById('costKwpVal').textContent = state.costKwp;
+
+  // Specyfikacja typu panela
+  const panel = PANEL_TYPES[state.panelType];
+  document.getElementById('panelTypeName').textContent = panel.short;
+  document.getElementById('specEff').textContent = panel.efficiency + '%';
+  document.getElementById('specYield').textContent = Math.round(effectiveYield()) + ' kWh/kWp';
+  // Światło rozproszone jako odchylenie od referencji (Mono PERC = 1.00)
+  const lightPct = Math.round((panel.lightFactor - 1) * 100);
+  document.getElementById('specLight').textContent = (lightPct >= 0 ? '+' : '−') + Math.abs(lightPct) + '%';
+  // Średnioważone straty temperaturowe w skali roku
+  const tempF = monthlyTempFactor();
+  const pvProf = state.customPv || PV_PROFILE;
+  let wTemp = 0, wSum = 0;
+  for (let i = 0; i < 12; i++) { wTemp += tempF[i]*pvProf[i]; wSum += pvProf[i]; }
+  const avgTempLoss = Math.round((wTemp/wSum - 1) * 100);
+  document.getElementById('specTempLoss').textContent = (avgTempLoss >= 0 ? '+' : '−') + Math.abs(avgTempLoss) + '%';
+  document.getElementById('specTemp').textContent = '−' + Math.abs(panel.tempCoef).toFixed(2) + '%/°C';
+  document.getElementById('specDeg').textContent = panel.degradation.toFixed(2) + '%/rok';
+  document.getElementById('specArea').textContent = requiredArea().toFixed(1) + ' m²';
+  document.getElementById('specProd').textContent = Math.round(annualProduction()).toLocaleString('pl-PL') + ' kWh';
+  document.getElementById('panelDesc').textContent = panel.desc;
+  document.getElementById('degradationVal').textContent = panel.degradation.toFixed(2);
+  document.getElementById('autoVal').textContent = state.autoUse;
+  document.getElementById('grantVal').textContent = state.grant;
+  document.getElementById('batKwhVal').textContent = state.batKwh;
+  document.getElementById('batCostKwhVal').textContent = state.batCostKwh;
+  document.getElementById('creditShareVal').textContent = state.creditShare;
+  document.getElementById('creditYearsVal').textContent = state.creditYears;
+  document.getElementById('creditRateVal').textContent = state.creditRate.toFixed(1);
+  document.getElementById('horizonVal').textContent = state.horizon;
+  document.getElementById('horizonLabel').textContent = state.horizon;
+  document.getElementById('priceGrowthVal').textContent = state.priceGrowth;
+  document.getElementById('degradationVal').textContent = state.degradation.toFixed(1);
+
+  // Odśwież tabelę profilu (gdy nie ma customUse)
+  if (!state.customUse) {
+    const useArr = autoSeasonalProfile();
+    document.querySelectorAll('#profileTable input[data-use]').forEach((inp, i) => {
+      inp.value = useArr[i].toFixed(0);
+    });
+  }
+
+  // Pokaż/ukryj nocną cenę
+  document.getElementById('priceNightWrap').style.display = state.tariff === 'G11' ? 'none' : 'block';
+  document.getElementById('creditPanel').style.display = state.useCredit ? 'block' : 'none';
+
+  // Pokaż/ukryj kafelek magazyn
+  const hasBat = state.batKwh > 0;
+
+  // === Symulacja ===
+  const sim = fullSimulation();
+  const md = monthlyData();
+
+  // KPI
+  document.getElementById('kpiYearly').textContent = fmt(sim.savingsPV1, 0);
+  document.getElementById('kpiYearlyNote').textContent = `oszczędność na PV, rok 1`;
+
+  document.getElementById('kpiPayback').textContent = sim.paybackPV ? sim.paybackPV.toFixed(1) : '∞';
+  document.getElementById('kpiPaybackNote').textContent = `scenariusz: tylko PV`;
+
+  document.getElementById('kpiNpv').textContent = fmt(sim.npvPV, 0);
+  document.getElementById('kpiNpvNote').textContent = `PV, po ${state.horizon} latach`;
+
+  // Najlepszy scenariusz: najniższy całkowity koszt
+  // Gdy magazyn = 0 kWh, scenariusz "PV + magazyn" jest identyczny z "PV" — wykluczamy go z rywalizacji,
+  // żeby nie wygrywał remisem ani nie mylił użytkownika.
+  const hasBattery = state.batKwh > 0;
+  const costs = [
+    {name: 'Bez PV', cost: sim.totalCostNoPV, key: 'noPV', active: true},
+    {name: 'PV', cost: sim.totalCostPV, key: 'pv', active: true},
+    {name: 'PV + magazyn', cost: sim.totalCostPVbat, key: 'pvBat', active: hasBattery}
+  ];
+  // Wybór najlepszego tylko spośród aktywnych scenariuszy.
+  // Przy remisie (różnica < 1 zł) preferujemy scenariusz o niższej inwestycji (prostszy).
+  const activeCosts = costs.filter(c => c.active);
+  const best = activeCosts.reduce((a, b) => {
+    if (Math.abs(a.cost - b.cost) < 1) {
+      // Remis kosztowy -> wybierz tańszy w inwestycji (noPV < pv < pvBat)
+      const order = { noPV: 0, pv: 1, pvBat: 2 };
+      return order[a.key] <= order[b.key] ? a : b;
+    }
+    return a.cost < b.cost ? a : b;
+  });
+  document.getElementById('kpiBest').textContent = best.name;
+  const diff = sim.totalCostNoPV - best.cost;
+  document.getElementById('kpiBestNote').textContent = diff > 0 ? `oszczędność ${fmt(diff,0)} zł vs brak PV` : 'brak korzyści';
+
+  // Scenariusze (3 boxy)
+  const box = document.getElementById('scenariosBox');
+  box.innerHTML = costs.map(c => `
+    <div class="scen ${c.key === best.key ? 'best' : ''} ${!c.active ? 'inactive' : ''}">
+      ${c.key === best.key ? '<div class="scen-best-tag">NAJLEPSZY</div>' : ''}
+      ${!c.active ? '<div class="scen-inactive-tag">DODAJ MAGAZYN</div>' : ''}
+      <div class="scen-title">${c.name}</div>
+      <div class="scen-cost">${c.active ? fmtCurrency(c.cost) : '—'}</div>
+      <div class="scen-period">${c.active ? `koszt łączny przez ${state.horizon} lat` : 'ustaw pojemność magazynu w kafelku 4'}</div>
+      ${!c.active ? '' : c.key === 'noPV' ? `
+        <div class="scen-row"><span class="lab">Rachunek/rok (rok 1)</span><span class="v">${fmt(sim.billNoPV1, 0)} zł</span></div>
+        <div class="scen-row"><span class="lab">Inwestycja</span><span class="v">0 zł</span></div>
+        <div class="scen-row"><span class="lab">Czas zwrotu</span><span class="v">—</span></div>
+      ` : c.key === 'pv' ? `
+        <div class="scen-row"><span class="lab">Rachunek/rok (rok 1)</span><span class="v">${fmt(sim.billPV1, 0)} zł</span></div>
+        <div class="scen-row"><span class="lab">Oszczędność/rok</span><span class="v">${fmt(sim.savingsPV1, 0)} zł</span></div>
+        <div class="scen-row"><span class="lab">Inwestycja</span><span class="v">${fmt(sim.pvInvest, 0)} zł</span></div>
+        ${state.useCredit ? `<div class="scen-row"><span class="lab">Rata kredytu</span><span class="v">${fmt(sim.pvMonthly, 0)} zł/mc</span></div>` : ''}
+        <div class="scen-row"><span class="lab">Czas zwrotu</span><span class="v">${sim.paybackPV ? sim.paybackPV.toFixed(1)+' lat' : 'nie zwróci się'}</span></div>
+        <div class="scen-row"><span class="lab">Zysk netto (${state.horizon} lat)</span><span class="v">${fmt(sim.npvPV, 0)} zł</span></div>
+      ` : `
+        <div class="scen-row"><span class="lab">Rachunek/rok (rok 1)</span><span class="v">${fmt(sim.billBat1, 0)} zł</span></div>
+        <div class="scen-row"><span class="lab">Oszczędność/rok</span><span class="v">${fmt(sim.savingsBat1, 0)} zł</span></div>
+        <div class="scen-row"><span class="lab">Inwestycja</span><span class="v">${fmt(sim.pvBatInvest, 0)} zł</span></div>
+        ${state.useCredit ? `<div class="scen-row"><span class="lab">Rata kredytu</span><span class="v">${fmt(sim.pvBatMonthly, 0)} zł/mc</span></div>` : ''}
+        <div class="scen-row"><span class="lab">Czas zwrotu</span><span class="v">${sim.paybackBat ? sim.paybackBat.toFixed(1)+' lat' : 'nie zwróci się'}</span></div>
+        <div class="scen-row"><span class="lab">Zysk netto (${state.horizon} lat)</span><span class="v">${fmt(sim.npvBat, 0)} zł</span></div>
+      `}
+    </div>
+  `).join('');
+
+  // Wykres skumulowanego kosztu — linia magazynu tylko gdy magazyn istnieje
+  const cumLines = [
+    { color: 'var(--red)', values: sim.noPVCum.map(v => -v) },
+    { color: 'var(--sun)', values: sim.pvCum.map(v => -v) }
+  ];
+  if (hasBattery) {
+    cumLines.push({ color: 'var(--mint)', values: sim.pvBatCum.map(v => -v) });
+  }
+  svgLineChart('cumulativeChart', cumLines, {
+    xLabels: Array.from({length: state.horizon+1}, (_,i) => `r.${i}`)
+  });
+
+  // Wykres sezonowy
+  svgBarChart('seasonalChart', [
+    { color: 'var(--blue)', values: md.map(m => m.use) },
+    { color: 'var(--sun)', values: md.map(m => m.pv) },
+    { color: 'var(--mint)', values: md.map(m => hasBat ? m.selfBat : m.selfNoBat) }
+  ], { xLabels: MONTHS });
+
+  // Wykres przepływów (PV + PV+bat względem braku PV — wartości dodatnie = zysk)
+  svgLineChart('cashflowChart', [
+    { color: 'var(--sun)', values: sim.relPV },
+    { color: 'var(--mint)', values: sim.relPVbat }
+  ], {
+    xLabels: Array.from({length: state.horizon+1}, (_,i) => `r.${i}`)
+  });
+}
+
+// ============== LISTENERS ==============
+
+function bindRange(id, key, parseFn=parseFloat) {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    state[key] = parseFn(el.value);
+    recompute();
+  });
+}
+
+document.querySelectorAll('#tariffGroup button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#tariffGroup button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.tariff = btn.dataset.tariff;
+    document.getElementById('tariffName').textContent =
+      state.tariff === 'G11' ? 'G11 (jednostrefowa)' :
+      state.tariff === 'G12' ? 'G12 (dzień/noc)' : 'G12W (dzień/noc/weekend)';
+    recompute();
+  });
+});
+
+bindRange('priceDay', 'priceDay');
+bindRange('priceNight', 'priceNight');
+bindRange('fixedFee', 'fixedFee');
+bindRange('rcem', 'rcem');
+bindRange('pvKwp', 'pvKwp');
+bindRange('costKwp', 'costKwp', parseInt);
+bindRange('autoUse', 'autoUse', parseInt);
+bindRange('grant', 'grant', parseInt);
+bindRange('batKwh', 'batKwh', parseInt);
+bindRange('batCostKwh', 'batCostKwh', parseInt);
+bindRange('creditShare', 'creditShare', parseInt);
+bindRange('creditYears', 'creditYears', parseInt);
+bindRange('creditRate', 'creditRate');
+bindRange('horizon', 'horizon', parseInt);
+bindRange('priceGrowth', 'priceGrowth');
+
+// Wybór typu panela
+document.getElementById('panelType').addEventListener('change', (e) => {
+  state.panelType = e.target.value;
+  recompute();
+});
+
+// ====== WOJEWÓDZTWO ======
+// Wypełnij select listą województw (posortowaną alfabetycznie po nazwie)
+const voivSelect = document.getElementById('voivodeship');
+Object.keys(VOIVODESHIPS)
+  .sort((a, b) => VOIVODESHIPS[a].name.localeCompare(VOIVODESHIPS[b].name, 'pl'))
+  .forEach(key => {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = `${VOIVODESHIPS[key].name} (${VOIVODESHIPS[key].yield} kWh/kWp)`;
+    voivSelect.appendChild(opt);
+  });
+voivSelect.value = state.voivodeship;
+
+// Wybór województwa ustawia uzysk bazowy (i kasuje ręczne nadpisanie)
+voivSelect.addEventListener('change', (e) => {
+  state.voivodeship = e.target.value;
+  state.yieldManual = false;
+  state.yieldKwp = VOIVODESHIPS[state.voivodeship].yield;
+  document.getElementById('yieldKwp').value = state.yieldKwp;
+  recompute();
+});
+
+// Ręczna zmiana suwaka uzysku — odłącza od województwa
+document.getElementById('yieldKwp').addEventListener('input', (e) => {
+  state.yieldKwp = parseInt(e.target.value);
+  state.yieldManual = true;
+  recompute();
+});
+
+// ====== ODBIORNIKI ENERGII ======
+// Każdy odbiornik ma checkbox (poza "base") + slider z wielkością rocznego zużycia
+const appKeys = ['base', 'heating', 'hp', 'ac', 'ev', 'pool', 'workshop'];
+appKeys.forEach(k => {
+  const cap = k.charAt(0).toUpperCase() + k.slice(1);
+  // Slider kWh
+  const slider = document.getElementById('app' + cap);
+  if (slider) {
+    slider.addEventListener('input', () => {
+      state.appliances[k].kwh = parseInt(slider.value);
+      state.customUse = null;  // ręczny profil zerujemy gdy zmieniasz odbiorniki
+      recompute();
+    });
+  }
+  // Checkbox (tylko dla nie-bazowych)
+  if (k !== 'base') {
+    const cb = document.getElementById('app' + cap + 'On');
+    if (cb) {
+      cb.addEventListener('change', () => {
+        state.appliances[k].on = cb.checked;
+        state.customUse = null;
+        recompute();
+      });
+    }
+  }
+});
+
+// Reset ręcznego profilu
+document.getElementById('resetProfile').addEventListener('click', () => {
+  state.customUse = null;
+  state.customPv = null;
+  buildProfileTable();
+  recompute();
+});
+
+document.getElementById('useCredit').addEventListener('change', (e) => {
+  state.useCredit = e.target.checked;
+  recompute();
+});
+
+// Inicjalizacja
+buildProfileTable();
+recompute();
+</script>
+
+</body>
+</html>
