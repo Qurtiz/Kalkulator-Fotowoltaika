@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalkulator opłacalności PV — net-billing 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <div class="brand">PV-Calc · v1.0 · 2026</div>
+    <h1>Kalkulator opłacalności <span class="accent">fotowoltaiki</span></h1>
+    <div class="sub">Net-billing · RCEm · scenariusze: bez PV / PV / PV + magazyn · symulacja kredytu</div>
+  </div>
+  <div class="badge">📍 Polska · taryfa G11/G12</div>
+</header>
+
+<div class="layout">
+
+  <!-- ============ LEWA KOLUMNA: WEJŚCIE ============ -->
+  <aside>
+
+    <!-- 1. TARYFA -->
+    <div class="card">
+      <div class="card-title">1 · Taryfa i cennik</div>
+      <div class="field">
+        <label>Taryfa <span class="val" id="tariffName">G11 (jednostrefowa)</span></label>
+        <div class="toggle-group" id="tariffGroup">
+          <button data-tariff="G11" class="active">G11</button>
+          <button data-tariff="G12">G12</button>
+          <button data-tariff="G12W">G12W</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Cena prądu — szczyt <span class="val"><span id="priceDayVal">1.10</span> zł/kWh</span></label>
+        <input type="number" id="priceDay" value="1.10" step="0.01" min="0.3" max="3">
+      </div>
+      <div class="field" id="priceNightWrap" style="display:none">
+        <label>Cena prądu — noc/weekend <span class="val"><span id="priceNightVal">0.60</span> zł/kWh</span></label>
+        <input type="number" id="priceNight" value="0.60" step="0.01" min="0.2" max="3">
+      </div>
+      <div class="field">
+        <label>Opłaty stałe (miesięcznie) <span class="val"><span id="fixedFeeVal">35</span> zł</span></label>
+        <input type="number" id="fixedFee" value="35" step="1" min="0" max="200">
+      </div>
+      <div class="field">
+        <label>RCEm — średnia roczna <span class="val"><span id="rcemVal">0.30</span> zł/kWh</span></label>
+        <input type="range" id="rcem" value="0.30" min="0.10" max="0.80" step="0.01">
+      </div>
+      <div class="info">
+        Net-billing rozlicza nadwyżki po <b>RCEm + 23%</b> (ekw. VAT). Średnia 2025/2026 oscyluje wokół <b>0.20–0.55 zł/kWh</b>, kwiecień 2026 dał rekordowo niskie 0.13 zł/kWh. Wartości historyczne PSE/OIRE.
+      </div>
+    </div>
+
+    <!-- 2. ODBIORNIKI ENERGII -->
+    <div class="card">
+      <div class="card-title mint">2 · Odbiorniki w gospodarstwie</div>
+      <div class="appliance" data-app="base">
+        <label class="app-row">
+          <span class="app-name">⚡ Zużycie bazowe</span>
+          <span class="val app-disabled">zawsze aktywne</span>
+        </label>
+        <div class="app-detail">
+          <label>Roczne zużycie <span class="val"><span id="appBaseVal">2200</span> kWh</span></label>
+          <input type="range" id="appBase" value="2200" min="800" max="6000" step="100">
+          <div class="app-hint">Oświetlenie, AGD, elektronika, gotowanie, c.w.u. elektryczna (bojler)</div>
+        </div>
+      </div>
+
+      <div class="appliance" data-app="heating">
+        <label class="app-row">
+          <input type="checkbox" id="appHeatingOn">
+          <span class="app-name">🔥 Ogrzewanie elektryczne</span>
+          <span class="val app-status">—</span>
+        </label>
+        <div class="app-detail" id="appHeatingDetail" style="display:none">
+          <label>Roczne zużycie <span class="val"><span id="appHeatingVal">8000</span> kWh</span></label>
+          <input type="range" id="appHeating" value="8000" min="2000" max="20000" step="200">
+          <div class="app-hint">Grzejniki elektryczne, piec akumulacyjny — wszystko zimą</div>
+        </div>
+      </div>
+
+      <div class="appliance" data-app="hp">
+        <label class="app-row">
+          <input type="checkbox" id="appHpOn">
+          <span class="app-name">♨️ Pompa ciepła</span>
+          <span class="val app-status">—</span>
+        </label>
+        <div class="app-detail" id="appHpDetail" style="display:none">
+          <label>Roczne zużycie <span class="val"><span id="appHpVal">3500</span> kWh</span></label>
+          <input type="range" id="appHp" value="3500" min="1500" max="8000" step="100">
+          <div class="app-hint">Powietrze-woda, COP ~3.5. Profil zimowy łagodniejszy niż grzejniki.</div>
+        </div>
+      </div>
+
+      <div class="appliance" data-app="ac">
+        <label class="app-row">
+          <input type="checkbox" id="appAcOn">
+          <span class="app-name">❄️ Klimatyzacja</span>
+          <span class="val app-status">—</span>
+        </label>
+        <div class="app-detail" id="appAcDetail" style="display:none">
+          <label>Roczne zużycie <span class="val"><span id="appAcVal">800</span> kWh</span></label>
+          <input type="range" id="appAc" value="800" min="200" max="3000" step="50">
+          <div class="app-hint">Szczyt: czerwiec–sierpień. Dobrze pokrywa się z produkcją PV.</div>
+        </div>
+      </div>
+
+      <div class="appliance" data-app="ev">
+        <label class="app-row">
+          <input type="checkbox" id="appEvOn">
+          <span class="app-name">🚗 Auto elektryczne</span>
+          <span class="val app-status">—</span>
+        </label>
+        <div class="app-detail" id="appEvDetail" style="display:none">
+          <label>Roczne zużycie <span class="val"><span id="appEvVal">3000</span> kWh</span></label>
+          <input type="range" id="appEv" value="3000" min="500" max="10000" step="100">
+          <div class="app-hint">15 000 km/rok ≈ 3000 kWh. Lekko więcej zimą (mniejszy zasięg).</div>
+        </div>
+      </div>
+
+      <div class="appliance" data-app="pool">
+        <label class="app-row">
+          <input type="checkbox" id="appPoolOn">
+          <span class="app-name">🏊 Basen / sauna / jacuzzi</span>
+          <span class="val app-status">—</span>
+        </label>
+        <div class="app-detail" id="appPoolDetail" style="display:none">
+          <label>Roczne zużycie <span class="val"><span id="appPoolVal">2500</span> kWh</span></label>
+          <input type="range" id="appPool" value="2500" min="500" max="8000" step="100">
+          <div class="app-hint">Pompy filtracyjne + podgrzewanie. Szczyt: maj–wrzesień.</div>
+        </div>
+      </div>
+
+      <div class="appliance" data-app="workshop">
+        <label class="app-row">
+          <input type="checkbox" id="appWorkshopOn">
+          <span class="app-name">🔧 Warsztat / urządzenia mocy</span>
+          <span class="val app-status">—</span>
+        </label>
+        <div class="app-detail" id="appWorkshopDetail" style="display:none">
+          <label>Roczne zużycie <span class="val"><span id="appWorkshopVal">1500</span> kWh</span></label>
+          <input type="range" id="appWorkshop" value="1500" min="300" max="6000" step="100">
+          <div class="app-hint">Spawarka, kompresor, obrabiarki — głównie dni robocze.</div>
+        </div>
+      </div>
+
+      <div class="total-bar">
+        <span>Suma roczna</span>
+        <span class="total-val"><span id="annualUseTotal">2200</span> kWh</span>
+      </div>
+    </div>
+
+    <!-- 2b. PROFIL SEZONOWY -->
+    <div class="card">
+      <div class="card-title mint">2b · Profil sezonowy</div>
+      <div class="info" style="margin-top:0; margin-bottom:12px">
+        Profil obliczony automatycznie na podstawie zaznaczonych odbiorników. Możesz go ręcznie skorygować.
+      </div>
+      <details open>
+        <summary>Profil miesięczny (kWh / udział PV %)</summary>
+        <table class="profile-table" id="profileTable">
+          <thead><tr><th>Mies.</th><th style="text-align:right">Zużycie [kWh]</th><th style="text-align:right">Produkcja PV [%]</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="app-hint" style="margin-top:8px">Kolumna zużycia: kWh w miesiącu (suma = roczne). Kolumna PV: % rocznej produkcji (suma = 100%).</div>
+        <button id="resetProfile" class="btn-reset">↺ Resetuj do auto</button>
+      </details>
+    </div>
+
+    <!-- 3. INSTALACJA PV -->
+    <div class="card">
+      <div class="card-title blue">3 · Instalacja PV</div>
+      <div class="field">
+        <label>Typ paneli <span class="val" id="panelTypeName">Mono PERC</span></label>
+        <select id="panelType">
+          <option value="poly">Polikrystaliczny (Poly-Si) — budżet</option>
+          <option value="perc" selected>Mono PERC half-cut — standard</option>
+          <option value="topcon">TOPCon N-type — nowa generacja</option>
+          <option value="hjt">HJT heterozłącze — premium</option>
+          <option value="thin">Cienkowarstwowy CdTe — niszowy</option>
+        </select>
+      </div>
+      <div class="panel-specs" id="panelSpecs">
+        <div class="spec"><span class="spec-lab">Sprawność</span><span class="spec-val" id="specEff">20%</span></div>
+        <div class="spec"><span class="spec-lab">Realny uzysk</span><span class="spec-val" id="specYield">1050 kWh/kWp</span></div>
+        <div class="spec"><span class="spec-lab">Światło rozproszone</span><span class="spec-val" id="specLight">+0%</span></div>
+        <div class="spec"><span class="spec-lab">Straty temp. (rok)</span><span class="spec-val" id="specTempLoss">−2%</span></div>
+        <div class="spec"><span class="spec-lab">Wsp. temp. γP</span><span class="spec-val" id="specTemp">−0.35%/°C</span></div>
+        <div class="spec"><span class="spec-lab">Degradacja</span><span class="spec-val" id="specDeg">0.55%/rok</span></div>
+        <div class="spec"><span class="spec-lab">Powierzchnia dachu</span><span class="spec-val" id="specArea">15 m²</span></div>
+        <div class="spec"><span class="spec-lab">Produkcja roczna</span><span class="spec-val" id="specProd">3150 kWh</span></div>
+      </div>
+      <div class="panel-desc" id="panelDesc">Standard rynkowy 2026. Najlepszy stosunek ceny do uzysku.</div>
+      <div class="field">
+        <label>Województwo <span class="val" id="voivodeshipYield">1040 kWh/kWp</span></label>
+        <select id="voivodeship"></select>
+      </div>
+      <div class="field">
+        <label>Moc instalacji <span class="val"><span id="pvKwpVal">3.0</span> kWp</span></label>
+        <input type="range" id="pvKwp" value="3.0" min="2" max="20" step="0.5">
+      </div>
+      <div class="field">
+        <label>Uzysk bazowy <span class="val"><span id="yieldVal">1040</span> kWh/kWp</span></label>
+        <input type="range" id="yieldKwp" value="1040" min="800" max="1200" step="10">
+        <div class="app-hint" id="yieldHint">Wartość z województwa. Przesuń suwak, aby ustawić ręcznie.</div>
+      </div>
+      <div class="field">
+        <label>Koszt PV (Mono PERC) <span class="val"><span id="costKwpVal">4500</span> zł/kWp</span></label>
+        <input type="range" id="costKwp" value="4500" min="3000" max="7000" step="100">
+      </div>
+      <div class="field">
+        <label>Auto-konsumpcja bez magazynu <span class="val"><span id="autoVal">30</span>%</span></label>
+        <input type="range" id="autoUse" value="30" min="15" max="60" step="1">
+      </div>
+      <div class="field">
+        <label>Dotacja "Mój Prąd" / inne <span class="val"><span id="grantVal">0</span> zł</span></label>
+        <input type="range" id="grant" value="0" min="0" max="20000" step="500">
+      </div>
+    </div>
+
+    <!-- 4. MAGAZYN -->
+    <div class="card">
+      <div class="card-title red">4 · Magazyn energii</div>
+      <div class="field">
+        <label>Pojemność <span class="val"><span id="batKwhVal">10</span> kWh</span></label>
+        <input type="range" id="batKwh" value="10" min="0" max="30" step="1">
+      </div>
+      <div class="field">
+        <label>Koszt magazynu <span class="val"><span id="batCostKwhVal">2200</span> zł/kWh</span></label>
+        <input type="range" id="batCostKwh" value="2200" min="1500" max="3500" step="100">
+      </div>
+      <div class="bat-result">
+        <div class="bat-result-row">
+          <span>Autokonsumpcja bez magazynu</span>
+          <span class="bat-result-val" id="selfNoBatPct">31%</span>
+        </div>
+        <div class="bat-result-row">
+          <span>Autokonsumpcja z magazynem</span>
+          <span class="bat-result-val mint" id="selfBatPct">58%</span>
+        </div>
+      </div>
+      <div class="info" style="margin-top:8px">
+        Autokonsumpcja z magazynem liczona jest <b>dobowo</b>: bateria przechwytuje dzienne nadwyżki i oddaje je wieczorem. Korzyść rośnie z pojemnością — przy <b>0 kWh scenariusz „PV + magazyn" jest tożsamy z „PV"</b>.
+      </div>
+    </div>
+
+    <!-- 5. KREDYT -->
+    <div class="card">
+      <div class="card-title">5 · Finansowanie</div>
+      <div class="field">
+        <label class="checkbox"><input type="checkbox" id="useCredit"> Finansowanie kredytem</label>
+      </div>
+      <div id="creditPanel" style="display:none">
+        <div class="field">
+          <label>Udział kredytu <span class="val"><span id="creditShareVal">100</span>%</span></label>
+          <input type="range" id="creditShare" value="100" min="10" max="100" step="5">
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Okres <span class="val"><span id="creditYearsVal">10</span> lat</span></label>
+            <input type="range" id="creditYears" value="10" min="2" max="20" step="1">
+          </div>
+          <div class="field">
+            <label>RRSO <span class="val"><span id="creditRateVal">9.0</span>%</span></label>
+            <input type="range" id="creditRate" value="9.0" min="3" max="15" step="0.1">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. PARAMETRY DŁUGOTERMINOWE -->
+    <div class="card">
+      <div class="card-title">6 · Horyzont inwestycji</div>
+      <div class="field">
+        <label>Okres analizy <span class="val"><span id="horizonVal">15</span> lat</span></label>
+        <input type="range" id="horizon" value="15" min="5" max="25" step="1">
+      </div>
+      <div class="field">
+        <label>Wzrost cen prądu r/r <span class="val"><span id="priceGrowthVal">4</span>%</span></label>
+        <input type="range" id="priceGrowth" value="4" min="0" max="15" step="0.5">
+      </div>
+      <div class="field">
+        <label>Degradacja paneli r/r <span class="val"><span id="degradationVal">0.55</span>% <span style="color:var(--text-dim)">(z typu panela)</span></span></label>
+        <div class="info" style="margin-top:4px">Degradacja jest ustalana automatycznie na podstawie wybranego typu paneli w kafelku 3.</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ============ PRAWA KOLUMNA: WYNIKI ============ -->
+  <main>
+
+    <!-- KPI -->
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Czas zwrotu</div>
+        <div class="kpi-value"><span id="kpiPayback">—</span><span class="kpi-unit">lat</span></div>
+        <div class="kpi-delta" id="kpiPaybackNote">scenariusz: PV</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Oszczędność / rok</div>
+        <div class="kpi-value"><span id="kpiYearly">—</span><span class="kpi-unit">zł</span></div>
+        <div class="kpi-delta" id="kpiYearlyNote">vs. brak PV, rok 1</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Zysk netto (cały okres)</div>
+        <div class="kpi-value"><span id="kpiNpv">—</span><span class="kpi-unit">zł</span></div>
+        <div class="kpi-delta" id="kpiNpvNote">po odjęciu inwestycji</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Najlepszy scenariusz</div>
+        <div class="kpi-value" style="font-size:22px"><span id="kpiBest">—</span></div>
+        <div class="kpi-delta" id="kpiBestNote">na podstawie zysku</div>
+      </div>
+    </div>
+
+    <!-- PORÓWNANIE 3 SCENARIUSZY -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Porównanie scenariuszy — koszt całkowity przez <span id="horizonLabel">15</span> lat</div>
+      </div>
+      <div class="scenarios" id="scenariosBox"></div>
+      <div id="cumulativeChart"></div>
+      <div class="legend" style="margin-top:12px">
+        <span class="legend-item"><span class="legend-dot" style="background:var(--red)"></span>Bez PV</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--sun)"></span>PV bez magazynu</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--mint)"></span>PV + magazyn</span>
+      </div>
+    </div>
+
+    <!-- WYKRES SEZONOWY -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Profil miesięczny — zużycie vs produkcja PV (rok 1)</div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>Zużycie</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--sun)"></span>Produkcja PV</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--mint)"></span>Auto-konsumpcja</span>
+        </div>
+      </div>
+      <div id="seasonalChart"></div>
+    </div>
+
+    <!-- PRZEPŁYWY -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Skumulowany przepływ pieniędzy</div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:var(--sun)"></span>PV</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--mint)"></span>PV + magazyn</span>
+        </div>
+      </div>
+      <div id="cashflowChart"></div>
+      <div class="info">
+        Linia przekraczająca <b>0 zł</b> = moment zwrotu inwestycji. Uwzględnia: oszczędność na rachunkach, przychód z odsprzedaży RCEm, dotację, koszt zakupu/raty kredytu, wzrost cen prądu i degradację paneli.
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<footer>
+  Modelowanie: net-billing wg ustawy o OZE · RCEm + 23% ekw. VAT · profil PSE/OIRE · uzysk PV typowy dla Polski (~1050 kWh/kWp).<br>
+  Kalkulator służy do orientacyjnej oceny — finalna decyzja powinna uwzględnić indywidualny profil godzinowy zużycia i ofertę sprzedawcy energii.
+</footer>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
