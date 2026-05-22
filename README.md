@@ -22,26 +22,6 @@ Interaktywny kalkulator szacujący opłacalność instalacji fotowoltaicznej i m
 | `style.css`  | wygląd |
 | `script.js`  | cała logika obliczeń |
 
-## Jak uruchomić lokalnie
-
-Wystarczy otworzyć `index.html` w przeglądarce — dwuklik na pliku. Nie wymaga serwera ani instalacji.
-
-## Hosting na GitHub Pages
-
-1. Załóż konto na [github.com](https://github.com) (jeśli nie masz).
-2. Utwórz nowe repozytorium, np. `kalkulator-pv` (może być publiczne).
-3. Wgraj do niego pliki `index.html`, `style.css`, `script.js` (oraz `.nojekyll` i ten `README.md`).
-   - Najprościej: na stronie repo kliknij **Add file → Upload files**, przeciągnij wszystkie pliki, zatwierdź (**Commit changes**).
-4. Wejdź w **Settings → Pages** (menu po lewej).
-5. W sekcji **Build and deployment**, pod **Source**, wybierz **Deploy from a branch**.
-6. W **Branch** wybierz `main` (lub `master`), folder `/ (root)`, kliknij **Save**.
-7. Odczekaj ~1 minutę. Strona pojawi się pod adresem:
-   ```
-   https://TWOJA-NAZWA.github.io/kalkulator-pv/
-   ```
-
-Każdy kolejny commit na gałąź automatycznie odświeży stronę.
-
 ## Uwaga merytoryczna
 
 Kalkulator służy do orientacyjnej oceny opłacalności. Finalna decyzja powinna uwzględniać indywidualny profil godzinowy zużycia oraz konkretną ofertę sprzedawcy energii. Wartości domyślne odzwierciedlają realia rynkowe z 2026 r. (ceny instalacji, RCEm, uzyski regionalne wg map nasłonecznienia SolarGIS/PTPV).
