@@ -48,7 +48,7 @@ const VOIVODESHIPS = {
 
 // ====== TYPY PANELI FOTOWOLTAICZNYCH ======
 // Parametry oparte na danych rynkowych 2025/2026.
-// Realny uzysk liczony jest z DWÓCH rozdzielnych czynników:
+// Realny uzysk liczony jest z dwóch rozdzielnych czynników:
 //   1. lightFactor — zachowanie przy świetle rozproszonym/zachmurzeniu (mnożnik, 1.00 = referencja Mono PERC)
 //   2. tempCoef — współczynnik temperaturowy mocy γP [%/°C]; straty liczone miesiąc po miesiącu
 //      względem temperatury ogniwa (= temp. powietrza + przyrost od nasłonecznienia)
